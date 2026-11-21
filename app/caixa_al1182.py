@@ -13,11 +13,12 @@ from engine import perform
 APP_ID = "io.github.rafaelmendoncadev.CaixaAL1182"
 
 
-def show_window(identity_file):
+def show_window(identity_file, icon_file):
     import gi
     gi.require_version("Gtk", "3.0")
     gi.require_version("Gdk", "3.0")
-    from gi.repository import Gdk, Gtk
+    gi.require_version("GdkPixbuf", "2.0")
+    from gi.repository import Gdk, GdkPixbuf, Gtk
 
     Gdk.set_program_class(APP_ID)
 
@@ -25,7 +26,15 @@ def show_window(identity_file):
         def __init__(self, application):
             super().__init__(application=application, title="Caixa AL-1182")
             self.set_default_size(410, 210)
-            self.set_icon_name(APP_ID)
+            try:
+                icon = GdkPixbuf.Pixbuf.new_from_file(str(icon_file))
+                self.set_icon(icon)
+                speaker_image = Gtk.Image.new_from_pixbuf(
+                    icon.scale_simple(64, 64, GdkPixbuf.InterpType.BILINEAR)
+                )
+            except GLib.Error:
+                self.set_icon_name("audio-speakers")
+                speaker_image = Gtk.Image.new_from_icon_name("audio-speakers", Gtk.IconSize.DIALOG)
             self.busy = False
             self.refresh_after = 0
             self.refresh_source = 0
@@ -36,9 +45,8 @@ def show_window(identity_file):
             status = Gtk.Box(spacing=14)
             status.set_hexpand(True)
             layout.pack_start(status, True, True, 0)
-            self.icon = Gtk.Image.new_from_icon_name(APP_ID, Gtk.IconSize.DIALOG)
-            self.icon.set_valign(Gtk.Align.START)
-            status.pack_start(self.icon, False, False, 0)
+            speaker_image.set_valign(Gtk.Align.START)
+            status.pack_start(speaker_image, False, False, 0)
 
             labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
             status.pack_start(labels, True, True, 0)
@@ -106,9 +114,6 @@ def show_window(identity_file):
             self.busy = False
             if action != "status":
                 self.refresh_after = time.monotonic() + 8
-            icons = {"success": "emblem-ok-symbolic", "warning": "dialog-warning-symbolic",
-                     "error": "dialog-error-symbolic", "info": APP_ID}
-            self.icon.set_from_icon_name(icons[result.kind], Gtk.IconSize.DIALOG)
             self.title.set_text(result.title)
             self.detail.set_text(result.detail)
             self.repair.set_sensitive(True)
@@ -136,9 +141,13 @@ def main():
     parser.add_argument("--identidade", type=Path, default=(
         Path(GLib.get_user_state_dir()) / "caixa-al1182-linux" / "dispositivo"
     ), help=argparse.SUPPRESS)
+    parser.add_argument("--icone", type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args()
     if not args.action:
-        return show_window(args.identidade)
+        source_icon = Path(__file__).resolve().parents[1] / "packaging" / "caixa-al1182.png"
+        installed_icon = Path(GLib.get_user_data_dir()) / "icons/hicolor/256x256/apps" / (APP_ID + ".png")
+        icon_file = args.icone or (source_icon if source_icon.is_file() else installed_icon)
+        return show_window(args.identidade, icon_file)
     result = perform(args.action, args.identidade)
     print(f"{result.title}. {result.detail}", flush=True)
     # Indisponibilidade temporária da caixa é esperada na rotina automática.

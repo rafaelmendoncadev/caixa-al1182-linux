@@ -137,8 +137,14 @@ def install_files(record):
     paths = {key: Path(value) if value else None for key, value in record["files"].items()}
     app, identity = paths["app"], Path(record["identity"])
     args = (app, "--identidade", identity)
-    desktop_exec = "/usr/bin/python3 " + " ".join(map(desktop_arg, args))
-    desktop_entry = unpack("desktop").decode().replace("@EXEC@", desktop_exec).encode()
+    desktop_exec = "/usr/bin/python3 " + " ".join(map(desktop_arg, (*args, "--icone", paths["icon"])))
+    desktop_icon = str(paths["icon"]).replace("\\", "\\\\").replace("\t", "\\t")
+    desktop_entry = (
+        unpack("desktop").decode()
+        .replace("\nExec=@EXEC@\n", f"\nExec={desktop_exec}\n")
+        .replace("\nIcon=@ICON@\n", f"\nIcon={desktop_icon}\n")
+        .encode()
+    )
     service_exec = ":/usr/bin/python3 " + " ".join(map(systemd_arg, (*args, "--automatico")))
     dropin = f"[Service]\nExecStart=\nExecStart={service_exec}\n".encode()
 
