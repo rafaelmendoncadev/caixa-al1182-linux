@@ -1,0 +1,4 @@
+__pycache__/
+*.py[cod]
+/caixa-al1182-instalar.sh
+/caixa-al1182-instalar.sh.sha256

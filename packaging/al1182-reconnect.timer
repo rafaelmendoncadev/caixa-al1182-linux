@@ -1,0 +1,10 @@
+[Unit]
+Description=Verificar e reconectar a caixa Bluetooth AL-1182
+
+[Timer]
+OnStartupSec=20s
+OnUnitInactiveSec=45s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
